@@ -1,0 +1,76 @@
+version: '0.1'
+interfaces:
+- id: ifc-order-status-event
+  type: event
+  owner_component_id: comp-order-management
+  version: 0.1.0
+  spec_path: docs/reference/schemas/order-status.avsc
+  topic: order.events.status
+  schema_format: avro
+  ordering: partition_key
+  retention: 7d
+  idempotency_key: event_id
+  payload_fields:
+  - name: event_id
+    type: string
+    required: true
+    description: Unique event identifier
+  - name: timestamp
+    type: string
+    required: true
+    description: ISO 8601 event timestamp
+  - name: order_id
+    type: string
+    required: true
+    description: Order identifier
+  - name: status
+    type: string
+    required: true
+    description: RECEIVED | PICKING | READY | PICKED_UP | CANCELLED
+  - name: store_id
+    type: string
+    required: true
+    description: Store identifier
+  tmf_alignment:
+    api_id: ''
+    confidence: unverified
+  cross_workspace:
+    provider_workspace_id: ''
+    provider_domain: Order
+    consumer_workspace_ids: []
+    consumer_domains:
+    - Fulfillment
+    - Notification
+  notes: Order status changes propagated to Fulfillment and Notification domains
+- id: ifc-notification-api
+  type: api
+  owner_component_id: comp-notification-service
+  version: 0.1.0
+  spec_path: docs/reference/oas/notification.oas.yaml
+  protocol: REST
+  auth: mTLS
+  rate_limit: 200 rps
+  endpoints:
+  - method: POST
+    path: /api/v1/notifications/send
+    description: Send notification (email/SMS) to customer
+  - method: POST
+    path: /api/v1/notifications/templates
+    description: Register notification template
+  slo:
+    latency_p95_ms: 500
+    availability: 99.5%
+  tmf_alignment:
+    api_id: ''
+    confidence: unverified
+  cross_workspace:
+    provider_workspace_id: ''
+    provider_domain: Notification
+    consumer_workspace_ids: []
+    consumer_domains:
+    - Order
+  notes: Notification delivery via external email/SMS providers
+governance:
+  versioning: semver
+  deprecation_window: 6 months
+  breaking_change_policy: new version required; old version supported for deprecation_window
